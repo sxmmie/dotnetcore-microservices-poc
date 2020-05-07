@@ -1,17 +1,21 @@
-sudo: required
-language: ruby
-env:
-  global:
-    - BUILD_NUMBER=${TRAVIS_BUILD_NUMBER}
+language: csharp
+mono: none
+dotnet: 3.1
 addons:
+  postgresql: "10"
   apt:
     packages:
-      - docker-ce
-  ssh_known_hosts: ec2-35-158-221-148.eu-central-1.compute.amazonaws.com
-services:
-  - docker
-
+    - postgresql-10
+    - postgresql-client-10
+before_script:
+  - psql -c 'create database lab_netmicro_pricing;' -U postgres
+  - psql -c "create role lab_user login password 'lab_pass';" -U postgres
+  - psql -c "grant all privileges on database lab_netmicro_pricing to lab_user;"  -U postgres
 script:
-  - docker build -f ProductService/Dockerfile -t dotnetcore-microservices-poc-product-service:${BUILD_NUMBER} .
-  - docker build -f PaymentService/Dockerfile -t dotnetcore-microservices-poc-payment-service:${BUILD_NUMBER} .
-  - docker build -f PricingService/Dockerfile -t dotnetcore-microservices-poc-pricing-service:${BUILD_NUMBER} .
+ - dotnet restore
+ - dotnet build
+ - cd ProductService.Test && dotnet test
+ - cd ../PricingService.Test && dotnet test
+ - cd ../PolicyService.Test && dotnet test
+ - cd ../PaymentService.Test && dotnet test
+ - cd ../PricingService.IntegrationTest && dotnet test
